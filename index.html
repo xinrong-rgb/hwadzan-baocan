@@ -181,7 +181,7 @@
 <nav class="tabs">
   <button data-tab="register" class="active">我的登記</button>
   <button data-tab="overview">總覽</button>
-  <button data-tab="log">日誌</button>
+  <button data-tab="log" id="logTab" style="display:none;">日誌</button>
   <button data-tab="admin" id="adminTab" style="display:none;">日期設定</button>
 </nav>
 
@@ -196,7 +196,7 @@
       <div class="grid">
         <div><label>單位 / 組別 *</label><input type="text" id="f-unit" placeholder="例：接待組"></div>
         <div><label>報餐聯絡人 *</label><input type="text" id="f-contact" placeholder="姓名"></div>
-        <div><label>手機號</label><input type="tel" id="f-phone" placeholder="0912-345-678"></div>
+        <div><label>手機號 *</label><input type="tel" id="f-phone" placeholder="0912-345-678"></div>
         <div><label>報餐日期 *</label><select id="f-date"><option value="">— 請選擇 —</option></select></div>
         <div><label>午餐</label><input type="number" id="f-lunch" min="0" value="0"></div>
         <div><label>晚餐</label><input type="number" id="f-dinner" min="0" value="0"></div>
@@ -348,6 +348,7 @@ function finishBoot() {
   document.getElementById('changeIdentityBtn').style.display = 'inline-block';
   document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
   document.getElementById('adminTab').style.display = state.isAdmin ? 'block' : 'none';
+  document.getElementById('logTab').style.display = state.isAdmin ? 'block' : 'none';
   renderDateOptions();
   resetForm(); // 切換帳號時清空殘留欄位
   loadMine();
@@ -595,7 +596,8 @@ function toggleAuto() {
 
 // =============== 日誌 ===============
 async function loadLog() {
-  try { renderLog(await api('getLog', 200)); }
+  if (!state.isAdmin) return;
+  try { renderLog(await api('getLog', 200, state.email)); }
   catch (e) { onError(e); }
 }
 function renderLog(rows) {
