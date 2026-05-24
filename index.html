@@ -342,10 +342,8 @@ function finishBoot() {
   document.getElementById('userDisplay').textContent =
     state.name ? (state.name + '（' + state.email + '）') : state.email;
   document.getElementById('changeIdentityBtn').style.display = 'inline-block';
-  if (state.isAdmin) {
-    document.getElementById('adminBadge').style.display = 'inline-block';
-    document.getElementById('adminTab').style.display = 'block';
-  }
+  document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
+  document.getElementById('adminTab').style.display = state.isAdmin ? 'block' : 'none';
   renderDateOptions();
   document.getElementById('f-contact').value = state.name || '';
   loadMine();
