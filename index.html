@@ -108,6 +108,7 @@
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   tr.total td { font-weight: 700; background: #faf2e0; }
   tr.total td.meal-total { color: #c4632a; }
+  td.day-total { color: #1c5fa8; font-weight: 700; }
   tr.date-header td {
     background: #efe6cc; color: var(--primary-dark);
     font-weight: 700; padding: 10px; font-size: 14px;
@@ -558,7 +559,7 @@ function renderSummaryByDate(rows) {
   if (!rows.length) { w.innerHTML = '<div class="empty">尚無資料</div>'; return; }
   let h = '<table><thead><tr><th>日期</th><th class="num">午餐</th><th class="num">晚餐</th><th class="num">當日合計</th></tr></thead><tbody>';
   rows.forEach(r => {
-    h += `<tr><td>${esc(r.date)}</td><td class="num meal-total">${r.lunch}</td><td class="num meal-total">${r.dinner}</td><td class="num">${r.lunch + r.dinner}</td></tr>`;
+    h += `<tr><td>${esc(r.date)}</td><td class="num meal-total">${r.lunch}</td><td class="num meal-total">${r.dinner}</td><td class="num day-total">${r.lunch + r.dinner}</td></tr>`;
   });
   h += '</tbody></table>';
   w.innerHTML = h;
