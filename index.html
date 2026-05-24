@@ -559,7 +559,7 @@ function renderSummaryByDate(rows) {
   if (!rows.length) { w.innerHTML = '<div class="empty">尚無資料</div>'; return; }
   let h = '<table><thead><tr><th>日期</th><th class="num">午餐</th><th class="num">晚餐</th><th class="num">當日合計</th></tr></thead><tbody>';
   rows.forEach(r => {
-    h += `<tr><td>${esc(r.date)}</td><td class="num meal-total">${r.lunch}</td><td class="num meal-total">${r.dinner}</td><td class="num day-total">${r.lunch + r.dinner}</td></tr>`;
+    h += `<tr><td>${esc(r.date)}</td><td class="num meal-total">${r.lunch}</td><td class="num meal-total">${r.dinner}</td><td class="num">${r.lunch + r.dinner}</td></tr>`;
   });
   h += '</tbody></table>';
   w.innerHTML = h;
