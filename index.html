@@ -283,9 +283,11 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwGg-Vj-kS7PBm1501NYlRo
 
 const LS_EMAIL = 'hwadzan_meal_email';
 const LS_NAME = 'hwadzan_meal_name';
+// 手機號 per-email 記住，鍵：hwadzan_meal_phone__<email>
+const phoneKey = (email) => 'hwadzan_meal_phone__' + (email || '').toLowerCase();
 
 let state = {
-  email: '', name: '',
+  email: '', name: '', phone: '',
   isAdmin: false,
   openDates: [],
   autoTimer: null,
@@ -311,6 +313,7 @@ async function api(action, ...args) {
 window.addEventListener('load', async () => {
   state.email = localStorage.getItem(LS_EMAIL) || '';
   state.name = localStorage.getItem(LS_NAME) || '';
+  state.phone = state.email ? (localStorage.getItem(phoneKey(state.email)) || '') : '';
 
   document.querySelectorAll('nav.tabs button').forEach(b => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -345,7 +348,7 @@ function finishBoot() {
   document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
   document.getElementById('adminTab').style.display = state.isAdmin ? 'block' : 'none';
   renderDateOptions();
-  document.getElementById('f-contact').value = state.name || '';
+  resetForm(); // 切換帳號時清空殘留欄位
   loadMine();
   toggleAuto();
 }
@@ -370,6 +373,7 @@ async function submitSetup() {
   }
   if (!name) { msg.className = 'msg error'; msg.textContent = '請輸入您的姓名'; return; }
   state.email = email; state.name = name;
+  state.phone = localStorage.getItem(phoneKey(email)) || '';
   localStorage.setItem(LS_EMAIL, email);
   localStorage.setItem(LS_NAME, name);
   hideSetupModal();
@@ -478,6 +482,11 @@ async function saveReg() {
   };
   try {
     await api('saveRegistration', payload, state.email);
+    // 記住這個帳號最後填的手機號，下次自動帶
+    if (payload.phone && state.email) {
+      state.phone = payload.phone;
+      localStorage.setItem(phoneKey(state.email), payload.phone);
+    }
     showMsg('✅ 已儲存');
     resetForm();
     loadMine();
@@ -504,7 +513,7 @@ function resetForm() {
   document.getElementById('editId').value = '';
   document.getElementById('f-unit').value = '';
   document.getElementById('f-contact').value = state.name || '';
-  document.getElementById('f-phone').value = '';
+  document.getElementById('f-phone').value = state.phone || '';
   document.getElementById('f-date').value = '';
   document.getElementById('f-lunch').value = '0';
   document.getElementById('f-dinner').value = '0';
