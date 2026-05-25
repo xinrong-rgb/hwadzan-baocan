@@ -534,7 +534,7 @@ async function deleteReg(id) {
 
 // =============== 總覽 ===============
 async function loadOverview() {
-  try { renderSummary(await api('getSummary')); }
+  try { renderSummary(await api('getSummary', state.email)); }
   catch (e) { onError(e); }
 }
 
@@ -570,8 +570,13 @@ function renderSummaryByUnit(rows) {
   const w = document.getElementById('summaryByUnit');
   if (!rows.length) { w.innerHTML = '<div class="empty">尚無資料</div>'; return; }
   let h = '<table><thead><tr><th>日期</th><th>單位/組別</th><th>聯絡人</th><th class="num">午餐</th><th class="num">晚餐</th></tr></thead><tbody>';
+  const fmtContact = c => {
+    if (typeof c === 'string') return c; // 向下相容舊資料
+    return c.phone ? (c.name + '（' + c.phone + '）') : c.name;
+  };
   rows.forEach(r => {
-    h += `<tr><td>${esc(r.date)}</td><td>${esc(r.unit)}</td><td>${esc((r.contacts || []).join('、'))}</td><td class="num">${r.lunch}</td><td class="num">${r.dinner}</td></tr>`;
+    const contactsStr = (r.contacts || []).map(fmtContact).join('、');
+    h += `<tr><td>${esc(r.date)}</td><td>${esc(r.unit)}</td><td>${esc(contactsStr)}</td><td class="num">${r.lunch}</td><td class="num">${r.dinner}</td></tr>`;
   });
   h += '</tbody></table>';
   w.innerHTML = h;
