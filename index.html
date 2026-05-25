@@ -572,7 +572,10 @@ function renderSummaryByUnit(rows) {
   let h = '<table><thead><tr><th>日期</th><th>單位/組別</th><th>聯絡人</th><th class="num">午餐</th><th class="num">晚餐</th></tr></thead><tbody>';
   const fmtContact = c => {
     if (typeof c === 'string') return c; // 向下相容舊資料
-    return c.phone ? (c.name + '（' + c.phone + '）') : c.name;
+    const parts = [];
+    if (c.phone) parts.push(c.phone);
+    if (c.note) parts.push(c.note);
+    return parts.length ? (c.name + '（' + parts.join('；') + '）') : c.name;
   };
   rows.forEach(r => {
     const contactsStr = (r.contacts || []).map(fmtContact).join('、');
