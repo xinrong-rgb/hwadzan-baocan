@@ -164,14 +164,14 @@
 <div class="modal-overlay" id="setupModal">
   <div class="modal">
     <h2>🍱 歡迎使用報餐系統</h2>
-    <p>請告訴我們您是誰，這個資訊只會存在您自己的瀏覽器，下次來自動帶入，不會傳到別人那邊。</p>
-    <div class="field">
-      <label>您的 Email *</label>
-      <input type="email" id="setupEmail" placeholder="your@email.com" autocomplete="email">
-    </div>
+    <p>請告訴我們您是誰，這個資訊只會存在您自己的瀏覽器，下次來自動帶入，不會傳到別人那邊。<br><span class="small">⚠️ 若您和學會其他人同名，請加上組別或暱稱（如「張小華(慈善組)」）方便系統識別。</span></p>
     <div class="field">
       <label>您的姓名 *</label>
       <input type="text" id="setupName" placeholder="陳大同" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>您的手機號 *</label>
+      <input type="tel" id="setupPhone" placeholder="0912-345-678" autocomplete="tel">
     </div>
     <div id="setupMsg" class="msg"></div>
     <button class="btn" id="setupSubmit" style="width:100%;" onclick="submitSetup()">開始使用</button>
@@ -282,13 +282,12 @@
 // 部署後請把下面這行換成你的 Apps Script Web App URL（以 /exec 結尾）
 const API_URL = 'https://script.google.com/macros/s/AKfycbwGg-Vj-kS7PBm1501NYlRoKhxiBgqjsSjP-cfkvabHiy2CIJjq2NDrQKFvd6MbkC7h/exec';
 
-const LS_EMAIL = 'hwadzan_meal_email';
+// 身分識別模型：姓名（主鍵）+ 手機號
 const LS_NAME = 'hwadzan_meal_name';
-// 手機號 per-email 記住，鍵：hwadzan_meal_phone__<email>
-const phoneKey = (email) => 'hwadzan_meal_phone__' + (email || '').toLowerCase();
+const LS_PHONE = 'hwadzan_meal_phone';
 
 let state = {
-  email: '', name: '', phone: '',
+  name: '', phone: '',
   isAdmin: false,
   openDates: [],
   autoTimer: null,
@@ -312,9 +311,8 @@ async function api(action, ...args) {
 
 // =============== 啟動 ===============
 window.addEventListener('load', async () => {
-  state.email = localStorage.getItem(LS_EMAIL) || '';
   state.name = localStorage.getItem(LS_NAME) || '';
-  state.phone = state.email ? (localStorage.getItem(phoneKey(state.email)) || '') : '';
+  state.phone = localStorage.getItem(LS_PHONE) || '';
 
   document.querySelectorAll('nav.tabs button').forEach(b => {
     b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -324,7 +322,7 @@ window.addEventListener('load', async () => {
   document.getElementById('autoRefresh').addEventListener('change', toggleAuto);
 
   try {
-    const data = await api('getBootstrap', state.email);
+    const data = await api('getBootstrap', state.name);
     onBoot(data);
   } catch (e) { onError(e); }
 });
@@ -332,55 +330,47 @@ window.addEventListener('load', async () => {
 function onBoot(data) {
   state.isAdmin = data.isAdmin;
   state.openDates = data.openDates;
-  if (data.isAdmin && data.email) {
-    state.email = data.email;
-    if (!state.name) state.name = data.email.split('@')[0];
-    localStorage.setItem(LS_EMAIL, state.email);
-    if (state.name) localStorage.setItem(LS_NAME, state.name);
-  }
-  if (data.needsSetup && !state.email) { showSetupModal(); return; }
+  if (data.needsSetup && !state.name) { showSetupModal(); return; }
   finishBoot();
 }
 
 function finishBoot() {
   document.getElementById('userDisplay').textContent =
-    state.name ? (state.name + '（' + state.email + '）') : state.email;
+    state.name + (state.phone ? '（' + state.phone + '）' : '');
   document.getElementById('changeIdentityBtn').style.display = 'inline-block';
   document.getElementById('adminBadge').style.display = state.isAdmin ? 'inline-block' : 'none';
   document.getElementById('adminTab').style.display = state.isAdmin ? 'block' : 'none';
   document.getElementById('logTab').style.display = state.isAdmin ? 'block' : 'none';
   renderDateOptions();
-  resetForm(); // 切換帳號時清空殘留欄位
+  resetForm();
   loadMine();
   toggleAuto();
 }
 
 // =============== 首次設定 ===============
 function showSetupModal() {
-  document.getElementById('setupEmail').value = state.email || '';
   document.getElementById('setupName').value = state.name || '';
+  document.getElementById('setupPhone').value = state.phone || '';
   document.getElementById('setupMsg').className = 'msg';
   document.getElementById('setupMsg').textContent = '';
   document.getElementById('setupModal').classList.add('show');
-  setTimeout(() => document.getElementById('setupEmail').focus(), 100);
+  setTimeout(() => document.getElementById('setupName').focus(), 100);
 }
 function hideSetupModal() { document.getElementById('setupModal').classList.remove('show'); }
 
 async function submitSetup() {
-  const email = (document.getElementById('setupEmail').value || '').trim().toLowerCase();
   const name = (document.getElementById('setupName').value || '').trim();
+  const phone = (document.getElementById('setupPhone').value || '').trim();
   const msg = document.getElementById('setupMsg');
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    msg.className = 'msg error'; msg.textContent = '請輸入正確的 Email 格式'; return;
-  }
   if (!name) { msg.className = 'msg error'; msg.textContent = '請輸入您的姓名'; return; }
-  state.email = email; state.name = name;
-  state.phone = localStorage.getItem(phoneKey(email)) || '';
-  localStorage.setItem(LS_EMAIL, email);
+  if (!phone) { msg.className = 'msg error'; msg.textContent = '請輸入您的手機號'; return; }
+  state.name = name;
+  state.phone = phone;
   localStorage.setItem(LS_NAME, name);
+  localStorage.setItem(LS_PHONE, phone);
   hideSetupModal();
   try {
-    const d = await api('getBootstrap', state.email);
+    const d = await api('getBootstrap', state.name);
     state.isAdmin = d.isAdmin;
     state.openDates = d.openDates;
     finishBoot();
@@ -434,9 +424,9 @@ function onError(err) {
 
 // =============== 我的登記 ===============
 async function loadMine() {
-  if (!state.email) { document.getElementById('mineList').innerHTML = '<div class="empty">請先設定您的 Email</div>'; return; }
+  if (!state.name) { document.getElementById('mineList').innerHTML = '<div class="empty">請先設定您的姓名</div>'; return; }
   try {
-    const rows = await api('getMyRegistrations', state.email);
+    const rows = await api('getMyRegistrations', state.name);
     renderMine(rows);
   } catch (e) { onError(e); }
 }
@@ -483,11 +473,11 @@ async function saveReg() {
     note: document.getElementById('f-note').value
   };
   try {
-    await api('saveRegistration', payload, state.email);
+    await api('saveRegistration', payload, state.name);
     // 記住這個帳號最後填的手機號，下次自動帶
-    if (payload.phone && state.email) {
+    if (payload.phone) {
       state.phone = payload.phone;
-      localStorage.setItem(phoneKey(state.email), payload.phone);
+      localStorage.setItem(LS_PHONE, payload.phone);
     }
     showMsg('✅ 已儲存');
     resetForm();
@@ -527,14 +517,14 @@ function resetForm() {
 async function deleteReg(id) {
   if (!confirm('確定要刪除這筆登記嗎？')) return;
   try {
-    await api('deleteRegistration', id, state.email);
+    await api('deleteRegistration', id, state.name);
     showMsg('✅ 已刪除'); loadMine();
   } catch (e) { onError(e); }
 }
 
 // =============== 總覽 ===============
 async function loadOverview() {
-  try { renderSummary(await api('getSummary', state.email)); }
+  try { renderSummary(await api('getSummary', state.name)); }
   catch (e) { onError(e); }
 }
 
@@ -605,7 +595,7 @@ function toggleAuto() {
 // =============== 日誌 ===============
 async function loadLog() {
   if (!state.isAdmin) return;
-  try { renderLog(await api('getLog', 200, state.email)); }
+  try { renderLog(await api('getLog', 200, state.name)); }
   catch (e) { onError(e); }
 }
 function renderLog(rows) {
@@ -636,7 +626,7 @@ function fmtDelta(n) {
 // =============== 管理員 ===============
 async function loadAdminDates() {
   if (!state.isAdmin) return;
-  try { renderAdminDates(await api('adminGetAllDates', state.email)); }
+  try { renderAdminDates(await api('adminGetAllDates', state.name)); }
   catch (e) { onError(e); }
 }
 function renderAdminDates(rows) {
@@ -660,7 +650,7 @@ async function adminAddDate() {
   const label = document.getElementById('adm-label').value;
   if (!date) { showMsg('請選擇日期', 'error'); return; }
   try {
-    await api('adminAddOpenDate', date, label, state.email);
+    await api('adminAddOpenDate', date, label, state.name);
     showMsg('✅ 已新增日期');
     document.getElementById('adm-date').value = '';
     document.getElementById('adm-label').value = '';
@@ -671,7 +661,7 @@ async function adminAddDate() {
 }
 async function adminToggle(date, status) {
   try {
-    await api('adminSetDateStatus', date, status, state.email);
+    await api('adminSetDateStatus', date, status, state.name);
     showMsg('✅ 已更新');
     loadAdminDates();
     state.openDates = await api('getAllOpenDates');
